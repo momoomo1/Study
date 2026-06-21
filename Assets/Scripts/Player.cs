@@ -9,6 +9,8 @@ public class Player : MonoBehaviour
     bool isGrounded;
     Rigidbody2D rigid;
 
+   
+
     public Transform[] testZone; 
 
 
