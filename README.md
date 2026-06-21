@@ -4,7 +4,9 @@ DevelopStudy
 Unity 버전 6.5로 프로젝트 실행
 
 26.06.21
+
 이동 A,D
+
 점프 Space
 
 로프발사 좌클릭
