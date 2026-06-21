@@ -27,7 +27,7 @@ public class Player : MonoBehaviour
      void Update()
     {
         //Jump
-        if (Input.GetButtonUp("Jump") && isGrounded)
+        if (Input.GetButtonDown("Jump") && isGrounded)
         {
             rigid.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
             isGrounded = false;
@@ -51,22 +51,33 @@ public class Player : MonoBehaviour
     void FixedUpdate()
 
     {
-        
-        //move
-        float h = Input.GetAxisRaw("Horizontal");
+        GrapHook hook = GetComponent<GrapHook>();
 
-        rigid.AddForce(Vector2.right * h, ForceMode2D.Impulse);
+        if (hook != null && hook.isAttach)
+        {
+            
+        }
+        else
+        {
+            float h = Input.GetAxisRaw("Horizontal");
 
-        //maxSpeed
-        if (rigid.linearVelocity.x> maxSpeed)
+            rigid.AddForce(Vector2.right * h, ForceMode2D.Impulse);
 
-            rigid.linearVelocity = new Vector2(maxSpeed, rigid.linearVelocity.y);
+            //maxSpeed
+            if (rigid.linearVelocity.x > maxSpeed)
 
-        else if (rigid.linearVelocity.x < maxSpeed * (-1))
+                rigid.linearVelocity = new Vector2(maxSpeed, rigid.linearVelocity.y);
 
-            rigid.linearVelocity = new Vector2(maxSpeed * (-1), rigid.linearVelocity.y);
+            else if (rigid.linearVelocity.x < maxSpeed * (-1))
 
-        Debug.DrawRay(rigid.position, Vector3.down, new Color(0, 1, 0));
+                rigid.linearVelocity = new Vector2(maxSpeed * (-1), rigid.linearVelocity.y);
+        }
+
+
+            //move
+            
+
+     
         RaycastHit2D rayHit = Physics2D.Raycast(rigid.position, Vector3.down, 1, LayerMask.GetMask("Ground"));
 
         if(rigid.linearVelocity.y < 0 )

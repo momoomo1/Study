@@ -7,19 +7,24 @@ public class GrapHook : MonoBehaviour
     public Transform hook;
     Vector2 mousedir;
 
-    public float maxDistance, hookSpeed, pullSpeed;
+    public float maxDistance, hookSpeed, pullSpeed; // 수치설정 순서대로 로프길이, 로프 속도, 끌려가는 속도
 
-    public bool isHookActive;
-    public bool isAttach;
-    public bool isRetract;
+    public bool isHookActive; //로프 작동중?
+    public bool isAttach; //로프 박힘?
+    public bool isRetract; // 회수중?
+    public bool isPull; //오브젝트 연결됨?
 
     Rigidbody2D rigid;
-    float gravity;
+    float gravity; //벽으로 날라갈 때 중력무시용
+    DistanceJoint2D ropeJoint; 
 
     void Start()
     {
         rigid = GetComponent<Rigidbody2D>();
         gravity = rigid.gravityScale;
+
+        ropeJoint = GetComponent<DistanceJoint2D>();
+        if(ropeJoint != null) ropeJoint.enabled = false;
 
         line.positionCount = 2;
         line.endWidth = line.startWidth = 0.05f;
@@ -33,50 +38,54 @@ public class GrapHook : MonoBehaviour
     void Update()
     {
         //발사
-       if(Input.GetMouseButtonDown(0) && !isHookActive)
+        if (Input.GetMouseButtonDown(0) && !isHookActive)
         {
-            hook.position = transform.position; 
+            hook.position = transform.position;
+            hook.SetParent(null);
 
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePos.z = 0;
             mousedir = (mousePos - transform.position).normalized;
 
+            //상태 초기화 
             isHookActive = true;
             isAttach = false;
             isRetract = false;
+            isPull = false;
 
             hook.gameObject.SetActive(true);
             line.enabled = true;
         }
-        // 2. 좌클릭 뗌 (해제 및 자유낙하)
+
+        //회수
         if (Input.GetMouseButtonUp(0) && isHookActive)
         {
             StartRetract();
         }
 
-  
+      //로프 로직
         if (isHookActive)
         {
             line.SetPosition(0, transform.position);
             line.SetPosition(1, hook.position);
 
-           
+          //벽에 박힘
             if (isAttach)
             {
-                // 플레이어를 훅 위치로 당기기 (유니티 6 최신 방식 적용)
-                Vector2 pullDir = (hook.position - transform.position).normalized;
-                rigid.linearVelocity = pullDir * pullSpeed;
-
-                // 훅에 거의 도착하면 자동 회수 (충돌 방지)
-                if (Vector2.Distance(transform.position, hook.position) < 0.5f)
+                //
+                if (Vector2.Distance(transform.position, hook.position) > 0.6f) 
                 {
-                    StartRetract();
+                    Vector2 pullDir = (hook.position - transform.position).normalized;
+                    rigid.linearVelocity = pullDir * pullSpeed;
+                }
+                else
+                { //목적지에 도달하면 그자리 고정 
+                    rigid.linearVelocity = Vector2.zero;
                 }
             }
-            // [상태 B] 마우스를 떼거나 사거리가 다 돼서 회수 중
+            //회수중 
             else if (isRetract)
-            {
-                // 돌아올 때는 날아갈 때보다 2배 빠르게 슉! 돌아오도록 연출
+            {   
                 hook.position = Vector2.MoveTowards(hook.position, transform.position, Time.deltaTime * hookSpeed * 2f);
 
                 if (Vector2.Distance(transform.position, hook.position) < 0.1f)
@@ -86,34 +95,63 @@ public class GrapHook : MonoBehaviour
                     line.enabled = false;
                 }
             }
-            // [상태 C] 갈고리가 목표를 향해 날아가는 중
+            //오브젝트 견인 중
+            else if (isPull)
+            {
+             
+                if (Vector2.Distance(transform.position, hook.position) > maxDistance + 2f)
+                {
+                    StartRetract();
+                }
+            }
+          
             else
             {
                 hook.Translate(mousedir * Time.deltaTime * hookSpeed);
 
-               
-                Collider2D hit = Physics2D.OverlapCircle(hook.position, 0.2f, LayerMask.GetMask("Ground"));
-                if (hit != null)
+                Collider2D wallHit = Physics2D.OverlapCircle(hook.position, 0.2f, LayerMask.GetMask("Ground"));
+                Collider2D pullHit = Physics2D.OverlapCircle(hook.position, 0.2f, LayerMask.GetMask("Target"));
+                //로프가 벽에 맞았을 때
+                if (wallHit != null)
                 {
                     isAttach = true;
-                    // 벽에 붙는 순간 일직선으로 날아가도록 중력을 끄고 기존 관성 제거
                     rigid.gravityScale = 0f;
                     rigid.linearVelocity = Vector2.zero;
                 }
-                // 벽에 안 닿고 최대 사거리를 벗어나면 회수
+                //로프가 오브젝트에 맞았을때
+                else if (pullHit != null)
+                {
+                    isPull = true;
+                    hook.SetParent(pullHit.transform);
+
+                    ropeJoint.enabled = true;
+                    ropeJoint.connectedBody = pullHit.attachedRigidbody;
+                    ropeJoint.distance = Vector2.Distance(transform.position, hook.position);
+                }
+                //헛쳤을때
                 else if (Vector2.Distance(transform.position, hook.position) > maxDistance)
                 {
-                    StartRetract();
+                    StartRetract(); 
                 }
             }
         }
     }
 
+    //회수함수
     void StartRetract()
     {
-        isRetract = true;
-        isAttach = false;
-     
-        rigid.gravityScale = gravity;
+        isRetract = true; 
+        isAttach = false; 
+        isPull = false;
+
+        rigid.gravityScale = gravity; //중력정상화
+
+        //오브젝트랑 연결이 끊기면
+        if (ropeJoint != null)
+        {
+            ropeJoint.enabled = false;
+            ropeJoint.connectedBody = null;
+        }
+        hook.SetParent(null);
     }
 }
