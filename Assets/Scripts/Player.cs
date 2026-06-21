@@ -7,14 +7,10 @@ public class Player : MonoBehaviour
 
     public float maxSpeed, jumpPower;
     bool isGrounded;
+    bool airJump;
     Rigidbody2D rigid;
 
-   
-
     public Transform[] testZone; 
-
-
-
 
     void Awake()
 
@@ -27,10 +23,18 @@ public class Player : MonoBehaviour
      void Update()
     {
         //Jump
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (Input.GetButtonDown("Jump"))
         {
-            rigid.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
-            isGrounded = false;
+            if (isGrounded)
+            {
+                Jump();
+                isGrounded = false;
+            }
+            else if (airJump)
+            {
+                Jump();
+                airJump = false;
+            }
         }
 
         //stop
@@ -75,18 +79,17 @@ public class Player : MonoBehaviour
 
 
             //move
-            
 
-     
         RaycastHit2D rayHit = Physics2D.Raycast(rigid.position, Vector3.down, 1, LayerMask.GetMask("Ground"));
 
-        if(rigid.linearVelocity.y < 0 )
+        if(rigid.linearVelocity.y <= 0 )
         {
             if (rayHit.collider != null)
             {
-                if (rayHit.distance < 0.5f)
+                if (rayHit.distance < 0.5f && rayHit.distance < 0.5f)
                 {
                     isGrounded = true;
+                    airJump = true;
                 }
                 else
                     isGrounded = false;
@@ -103,6 +106,12 @@ public class Player : MonoBehaviour
 
             rigid.linearVelocity = Vector2.zero;
         }
+    }
+
+    void Jump()
+    {
+        rigid.linearVelocity = new Vector2(rigid.linearVelocity.x, 0);
+        rigid.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
     }
 
 }

@@ -9218,7 +9218,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GrapHook
   line: {fileID: 460490380}
   hook: {fileID: 1253901141}
-  maxDistance: 15
+  maxDistance: 7.68
   hookSpeed: 50
   pullSpeed: 30
   isHookActive: 0
